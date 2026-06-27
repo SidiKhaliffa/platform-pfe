@@ -2,11 +2,6 @@
 # Étape d'apprentissage : on garde simple, on enrichit ensuite.
 
 # Job de vérification — tourne toujours, prouve que la pipeline se déclenche
-sanity-check:
-  stage: install
-  script:
-    - echo "Pipeline déclenchée avec succès !"
-    - node --version
 
 stages:
   - install
