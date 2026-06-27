@@ -1,0 +1,221 @@
+networks:
+  platform-net:
+    driver: bridge
+
+volumes:
+  rabbitmq-data:
+  postgres-auth-data:
+  postgres-inventory-data:
+  postgres-monitoring-data:
+  postgres-execution-data:
+
+services:
+
+  # ─── Broker ───────────────────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"    # AMQP (services internes)
+      - "15672:15672"  # Management UI → http://localhost:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-admin}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - platform-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Bases de données (décommenter au fur et à mesure) ────────────────────
+
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: postgres-auth
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"    # exposé sur l'hôte pour les migrations locales
+    networks:
+      - platform-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres-inventory:
+    image: postgres:16-alpine
+    container_name: postgres-inventory
+    environment:
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres-inventory-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"    # exposé sur l'hôte pour les migrations locales (npx prisma migrate dev)
+    networks:
+      - platform-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres-monitoring:
+    image: postgres:16-alpine
+    container_name: postgres-monitoring
+    environment:
+      POSTGRES_DB: monitoring_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres-monitoring-data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"    # exposé sur l'hôte pour les migrations locales
+    networks:
+      - platform-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ─── API Gateway ──────────────────────────────────────────────────────────
+  api-gateway:
+    build: ./services/api-gateway
+    container_name: api-gateway
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    environment:
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      INVENTORY_SERVICE_URL: http://inventory-service:3002
+      MONITORING_SERVICE_URL: http://monitoring-service:3003
+      EXECUTION_SERVICE_URL: http://execution-service:3004
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    networks:
+      - platform-net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Services métier (décommenter au fur et à mesure) ────────────────────
+
+  auth-service:
+    build: ./services/auth-service
+    container_name: auth-service
+    expose: ["3001"]
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres-auth:5432/auth_db
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: "24h"
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@pfe.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin1234!}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    networks:
+      - platform-net
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    restart: unless-stopped
+
+  inventory-service:
+    build: ./services/inventory-service
+    container_name: inventory-service
+    expose: ["3002"]
+    ports:
+      - "3002:3002"    # temporaire pour debug — à supprimer en prod
+    environment:
+      PORT: 3002
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres-inventory:5432/inventory_db
+      RABBITMQ_URL: amqp://admin:${RABBITMQ_PASS:-admin}@rabbitmq:5672
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    networks:
+      - platform-net
+    depends_on:
+      postgres-inventory:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  monitoring-service:
+    build: ./services/monitoring-service
+    container_name: monitoring-service
+    expose: ["3003"]
+    environment:
+      PORT: 3003
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres-monitoring:5432/monitoring_db
+      RABBITMQ_URL: amqp://admin:${RABBITMQ_PASS:-admin}@rabbitmq:5672
+      MONITORING_ENABLED: "true"
+      MONITORING_CRON: "* * * * *"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    networks:
+      - platform-net
+    depends_on:
+      postgres-monitoring:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres-execution:
+    image: postgres:16-alpine
+    container_name: postgres-execution
+    environment:
+      POSTGRES_DB: execution_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres-execution-data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"    # migrations locales : DATABASE_URL=postgresql://postgres:postgres@localhost:5436/execution_db
+    networks:
+      - platform-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  execution-service:
+    build: ./services/execution-service
+    container_name: execution-service
+    expose: ["3004"]
+    environment:
+      PORT: 3004
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres-execution:5432/execution_db
+      RABBITMQ_URL: amqp://admin:${RABBITMQ_PASS:-admin}@rabbitmq:5672
+      INVENTORY_SERVICE_URL: http://inventory-service:3002
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    networks:
+      - platform-net
+    depends_on:
+      postgres-execution:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Serveur SSH de test (DEV UNIQUEMENT — ne pas déployer en prod) ───────
+  ssh-target:
+    build: ./services/ssh-target
+    container_name: ssh-target
+    ports:
+      - "2222:22"    # accès depuis l'hôte : ssh root@localhost -p 2222
+    networks:
+      - platform-net

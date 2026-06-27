@@ -1,0 +1,53 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum AuthType {
+  PASSWORD
+  KEY
+}
+
+// Un job d'installation : trace complète de la demande jusqu'au résultat
+model InstallationJob {
+  id           String    @id @default(uuid())
+  serverId     String    // référence logique vers inventory (pas de FK cross-DB)
+  ipAddress    String    // dénormalisé depuis inventory au moment de la création du job
+  hostname     String    // dénormalisé depuis inventory au moment de la création du job
+  softwareKey  String    // clé du catalogue (ex: "nginx")
+  status       JobStatus @default(PENDING)
+  output       String?   @db.Text // stdout/stderr accumulé des commandes SSH
+  errorMessage String?
+  requestedBy  String    // userId (sub du JWT, injecté par le gateway)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([serverId])
+  @@index([status])
+  @@index([requestedBy])
+}
+
+// Credentials SSH chiffrés pour chaque serveur administré
+model SshCredential {
+  id              String   @id @default(uuid())
+  serverId        String   @unique // un seul jeu de credentials par serveur
+  sshUser         String
+  host            String?  // surcharge l'IP du job pour la connexion SSH (ex: hostname Docker)
+  port            Int      @default(22)
+  authType        AuthType
+  secretEncrypted String   // mot de passe ou clé privée chiffré(e) AES-256-CBC
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

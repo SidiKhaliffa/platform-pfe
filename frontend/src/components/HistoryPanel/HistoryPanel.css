@@ -1,0 +1,195 @@
+.hp-panel {
+  margin-top: 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  animation: hp-slide 0.2s ease;
+}
+
+@keyframes hp-slide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── En-tête ─────────────────────────────────────────────────────────────────── */
+
+.hp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hp-header__title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.hp-hostname {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.hp-ip {
+  font-size: 0.8rem;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  color: #64748b;
+}
+
+.hp-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hp-btn-check {
+  padding: 6px 14px;
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+
+.hp-btn-check:hover:not(:disabled) { background: #0284c7; }
+.hp-btn-check:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.hp-btn-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: #94a3b8;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color 0.12s, background 0.12s;
+}
+
+.hp-btn-close:hover { color: #1e293b; background: #e2e8f0; }
+
+/* ── Messages ────────────────────────────────────────────────────────────────── */
+
+.hp-flash {
+  margin: 12px 20px 0;
+  padding: 10px 14px;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #166534;
+}
+
+.hp-error {
+  margin: 12px 20px 0;
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #dc2626;
+}
+
+.hp-loading,
+.hp-empty {
+  padding: 32px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+/* ── Résumé ──────────────────────────────────────────────────────────────────── */
+
+.hp-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.8rem;
+}
+
+.hp-summary__item { color: #64748b; }
+.hp-summary__item--up   { color: #16a34a; font-weight: 600; }
+.hp-summary__item--down { color: #dc2626; font-weight: 600; }
+
+/* ── Graphe ──────────────────────────────────────────────────────────────────── */
+
+.hp-panel .lc-wrap {
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* ── Pagination ──────────────────────────────────────────────────────────────── */
+
+.hp-pagination {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.hp-btn-page {
+  padding: 5px 14px;
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: background 0.12s;
+}
+
+.hp-btn-page:hover:not(:disabled) { background: #e2e8f0; }
+.hp-btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Tableau ─────────────────────────────────────────────────────────────────── */
+
+.hp-table-wrap { overflow-x: auto; }
+
+.hp-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.hp-table th {
+  padding: 9px 16px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.hp-table td {
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.hp-table tbody tr:last-child td { border-bottom: none; }
+.hp-table tbody tr:hover td { background: #f8fafc; }
+
+.hp-row--down td { background: rgba(239, 68, 68, 0.035); }
+.hp-row--down:hover td { background: rgba(239, 68, 68, 0.07) !important; }
+
+.col-mono {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.82rem;
+  color: #475569;
+}

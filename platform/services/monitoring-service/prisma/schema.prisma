@@ -1,0 +1,38 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PingStatus {
+  UP
+  DOWN
+}
+
+// Réplique locale des serveurs à surveiller.
+// serverId est une référence logique vers inventory-service (pas de FK cross-base).
+model MonitoredServer {
+  id           String        @id @default(uuid())
+  serverId     String        @unique
+  ipAddress    String
+  hostname     String
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  healthChecks HealthCheck[]
+}
+
+model HealthCheck {
+  id              String          @id @default(uuid())
+  serverId        String
+  monitoredServer MonitoredServer @relation(fields: [serverId], references: [serverId])
+  status          PingStatus
+  latencyMs       Int?
+  checkedAt       DateTime        @default(now())
+
+  @@index([serverId, checkedAt(sort: Desc)])
+}

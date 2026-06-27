@@ -1,0 +1,175 @@
+.jl-section { margin-top: 0; }
+
+/* ── En-tête ─────────────────────────────────────────────────────────────────── */
+
+.jl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.jl-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.jl-count {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+.jl-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.jl-filters select {
+  padding: 6px 10px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #475569;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.jl-filters select:focus { border-color: #3b82f6; }
+
+/* ── Vide ────────────────────────────────────────────────────────────────────── */
+
+.jl-empty {
+  padding: 40px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+/* ── Tableau ─────────────────────────────────────────────────────────────────── */
+
+.jl-table-wrap {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.jl-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.jl-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.jl-table td {
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.jl-table tbody tr:last-child td { border-bottom: none; }
+
+.jl-row { cursor: pointer; transition: background 0.07s; }
+.jl-row:hover td { background: #f8fafc; }
+.jl-row--selected td { background: #eff6ff !important; border-bottom-color: #bfdbfe; }
+
+.jl-col-sw {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.jl-hostname {
+  display: block;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #1e293b;
+}
+
+.jl-ip {
+  display: block;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+.jl-col-time {
+  font-size: 0.8rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.jl-col-action { white-space: nowrap; }
+
+.jl-btn-view {
+  font-size: 0.8rem;
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+/* ── Badges de statut ────────────────────────────────────────────────────────── */
+
+.jsb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+.jsb__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.jsb--pending { background: #f1f5f9; color: #64748b; }
+.jsb--pending .jsb__dot { background: #94a3b8; }
+
+.jsb--running { background: #eff6ff; color: #1d4ed8; }
+.jsb--running .jsb__dot { background: #3b82f6; animation: jsb-pulse 1.2s ease-in-out infinite; }
+
+.jsb--success { background: #dcfce7; color: #166534; }
+.jsb--success .jsb__dot { background: #22c55e; }
+
+.jsb--failed  { background: #fee2e2; color: #dc2626; }
+.jsb--failed  .jsb__dot { background: #ef4444; }
+
+@keyframes jsb-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.6); }
+}

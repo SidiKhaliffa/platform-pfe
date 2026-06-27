@@ -1,0 +1,133 @@
+.if-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 24px 24px;
+  margin-bottom: 28px;
+}
+
+.if-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 18px;
+}
+
+.if-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.if-error {
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+/* ── Champs ──────────────────────────────────────────────────────────────────── */
+
+.if-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.if-field label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.if-field select {
+  padding: 9px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+  max-width: 400px;
+  transition: border-color 0.15s;
+}
+
+.if-field select:focus { border-color: #3b82f6; }
+.if-select--empty { color: #94a3b8; }
+
+/* ── Catalogue de cartes ─────────────────────────────────────────────────────── */
+
+.if-catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.if-card-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 14px 14px 12px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.13s, background 0.13s;
+}
+
+.if-card-item:hover {
+  border-color: #93c5fd;
+  background: #f0f9ff;
+}
+
+.if-card-item--selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.if-card-item__name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.if-card-item__desc {
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.if-card-item__check {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #3b82f6;
+}
+
+/* ── Actions ─────────────────────────────────────────────────────────────────── */
+
+.if-actions { display: flex; justify-content: flex-end; }
+
+.if-btn-submit {
+  padding: 9px 28px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background 0.12s;
+}
+
+.if-btn-submit:hover:not(:disabled) { background: #2563eb; }
+
+.if-btn-submit:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}

@@ -1,0 +1,202 @@
+.page {
+  padding: 28px 32px;
+  max-width: 1200px;
+}
+
+/* ── En-tête ─────────────────────────────────────────────────────────────────── */
+
+.mon-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mon-header h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.mon-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Toggle auto-refresh ─────────────────────────────────────────────────────── */
+
+.auto-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+  color: #64748b;
+  cursor: pointer;
+  user-select: none;
+}
+
+.auto-toggle input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 32px;
+  height: 18px;
+  background: #e2e8f0;
+  border-radius: 100px;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.auto-toggle input[type="checkbox"]::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  transition: transform 0.2s;
+}
+
+.auto-toggle input[type="checkbox"]:checked { background: #3b82f6; }
+.auto-toggle input[type="checkbox"]:checked::after { transform: translateX(14px); }
+
+/* ── Boutons globaux ─────────────────────────────────────────────────────────── */
+
+.mon-btn {
+  padding: 7px 16px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+
+.mon-btn:hover { background: #e2e8f0; }
+
+.mon-btn--primary {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+.mon-btn--primary:hover:not(:disabled) { background: #2563eb; border-color: #2563eb; }
+.mon-btn--primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── État vide / erreur ──────────────────────────────────────────────────────── */
+
+.state-msg {
+  padding: 48px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.state-msg--error {
+  color: #ef4444;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #fecaca;
+  padding: 14px 20px;
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+/* ── Tableau de statut ───────────────────────────────────────────────────────── */
+
+.table-wrap {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.mon-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mon-table th {
+  padding: 11px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.mon-table td {
+  padding: 13px 16px;
+  font-size: 0.9rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.mon-table tbody tr:last-child td { border-bottom: none; }
+
+.mon-row {
+  cursor: pointer;
+  transition: background 0.08s;
+}
+
+.mon-row:hover td { background: #f8fafc; }
+
+.mon-row--selected td {
+  background: #eff6ff !important;
+  border-bottom-color: #bfdbfe;
+}
+
+.col-hostname {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.col-mono {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.col-latency {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+.col-freshness {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.col-check { white-space: nowrap; }
+
+/* ── Bouton par ligne ────────────────────────────────────────────────────────── */
+
+.mon-btn-row {
+  padding: 4px 12px;
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+
+.mon-btn-row:hover:not(:disabled) { background: #e0f2fe; }
+.mon-btn-row:disabled { opacity: 0.5; cursor: not-allowed; }

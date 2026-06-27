@@ -1,0 +1,39 @@
+# ── Secrets (NE JAMAIS committer) ───────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Dépendances Node ─────────────────────────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ── Build frontend ───────────────────────────────────────────────────────────
+frontend/dist/
+frontend/dist-ssr/
+
+# ── Prisma client généré (régénéré par prisma generate) ─────────────────────
+**/node_modules/.prisma/
+**/.prisma/
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ── Docker — données des volumes PostgreSQL ──────────────────────────────────
+postgres-data/
+**/postgres-data/
+
+# ── OS / éditeurs ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.sw?
+
+# ── Tests / couverture ───────────────────────────────────────────────────────
+coverage/

@@ -1,0 +1,53 @@
+.lc-wrap {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  padding: 16px 8px 8px;
+}
+
+.lc-all-down {
+  font-size: 0.82rem;
+  color: #dc2626;
+  text-align: center;
+  margin-bottom: 8px;
+  padding: 0 12px;
+}
+
+/* ── Tooltip ────────────────────────────────────────────────────────────────── */
+
+.lc-tooltip {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,.25);
+}
+
+.lc-tooltip__time {
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.lc-tooltip__val {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.lc-tooltip__val--down { color: #f87171; }
+
+/* ── Légende ────────────────────────────────────────────────────────────────── */
+
+.lc-legend {
+  display: flex;
+  gap: 20px;
+  justify-content: flex-end;
+  padding: 6px 14px 0;
+}
+
+.lc-legend__up,
+.lc-legend__down {
+  font-size: 0.75rem;
+}
+
+.lc-legend__up   { color: #3b82f6; }
+.lc-legend__down { color: #ef4444; }

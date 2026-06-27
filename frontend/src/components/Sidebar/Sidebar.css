@@ -1,0 +1,95 @@
+.sidebar {
+  width: 220px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
+  background: #1e293b;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebar__brand {
+  padding: 22px 20px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  border-bottom: 1px solid #334155;
+  letter-spacing: 0.02em;
+}
+
+.sidebar__nav {
+  flex: 1;
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar__link {
+  display: block;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  color: #94a3b8;
+  border-left: 3px solid transparent;
+  transition: background 0.12s, color 0.12s;
+}
+
+.sidebar__link:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.sidebar__link--active {
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  border-left-color: #3b82f6;
+}
+
+.sidebar__footer {
+  padding: 14px 20px;
+  border-top: 1px solid #334155;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar__user {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sidebar__email {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__role {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #3b82f6;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sidebar__logout {
+  width: 100%;
+  padding: 8px 12px;
+  background: #334155;
+  color: #94a3b8;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  transition: background 0.12s, color 0.12s;
+}
+
+.sidebar__logout:hover {
+  background: #ef4444;
+  color: #fff;
+}
