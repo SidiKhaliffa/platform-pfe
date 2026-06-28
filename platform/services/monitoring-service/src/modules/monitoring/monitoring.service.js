@@ -6,14 +6,13 @@ const runCheck = async (server) => {
   const { status, latencyMs } = await pingHost(server.ipAddress);
   const healthCheck = await repo.createHealthCheck({ serverId: server.serverId, status, latencyMs });
 
-  if (status === 'DOWN') {
-    publisher.publish('server.down', {
-      serverId:  server.serverId,
-      hostname:  server.hostname,
-      ipAddress: server.ipAddress,
-      checkedAt: healthCheck.checkedAt,
-    });
-  }
+  const routingKey = status === 'UP' ? 'server.up' : 'server.down';
+  publisher.publish(routingKey, {
+    serverId:  server.serverId,
+    hostname:  server.hostname,
+    ipAddress: server.ipAddress,
+    checkedAt: healthCheck.checkedAt,
+  });
 
   return healthCheck;
 };
