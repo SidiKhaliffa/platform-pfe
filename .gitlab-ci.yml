@@ -1,7 +1,6 @@
 # Pipeline CI de la plateforme — build + test de tous les services + frontend
-# Étape d'apprentissage : on garde simple, on enrichit ensuite.
-
-# Job de vérification — tourne toujours, prouve que la pipeline se déclenche
+# Version simple : tous les jobs tournent à chaque push.
+# On réintroduira l'optimisation "rules: changes:" plus tard, quand elle aura du sens.
 
 stages:
   - install
@@ -10,6 +9,13 @@ stages:
 default:
   image: node:20
 
+# ---- SANITY CHECK (vérifie que la pipeline se déclenche) ----
+sanity-check:
+  stage: install
+  script:
+    - echo "Pipeline déclenchée avec succès !"
+    - node --version
+
 # =========================================================
 #  BACKEND — services sous platform/services/
 # =========================================================
@@ -17,16 +23,12 @@ default:
 # ---- API GATEWAY ----
 install:gateway:
   stage: install
-  rules:
-    - changes: [ "platform/services/api-gateway/**/*" ]
   script:
     - cd platform/services/api-gateway
     - npm ci
 
 test:gateway:
   stage: test
-  rules:
-    - changes: [ "platform/services/api-gateway/**/*" ]
   script:
     - cd platform/services/api-gateway
     - npm ci
@@ -35,16 +37,12 @@ test:gateway:
 # ---- AUTH SERVICE ----
 install:auth:
   stage: install
-  rules:
-    - changes: [ "platform/services/auth-service/**/*" ]
   script:
     - cd platform/services/auth-service
     - npm ci
 
 test:auth:
   stage: test
-  rules:
-    - changes: [ "platform/services/auth-service/**/*" ]
   script:
     - cd platform/services/auth-service
     - npm ci
@@ -53,16 +51,12 @@ test:auth:
 # ---- INVENTORY SERVICE ----
 install:inventory:
   stage: install
-  rules:
-    - changes: [ "platform/services/inventory-service/**/*" ]
   script:
     - cd platform/services/inventory-service
     - npm ci
 
 test:inventory:
   stage: test
-  rules:
-    - changes: [ "platform/services/inventory-service/**/*" ]
   script:
     - cd platform/services/inventory-service
     - npm ci
@@ -71,16 +65,12 @@ test:inventory:
 # ---- MONITORING SERVICE ----
 install:monitoring:
   stage: install
-  rules:
-    - changes: [ "platform/services/monitoring-service/**/*" ]
   script:
     - cd platform/services/monitoring-service
     - npm ci
 
 test:monitoring:
   stage: test
-  rules:
-    - changes: [ "platform/services/monitoring-service/**/*" ]
   script:
     - cd platform/services/monitoring-service
     - npm ci
@@ -89,16 +79,12 @@ test:monitoring:
 # ---- EXECUTION SERVICE ----
 install:execution:
   stage: install
-  rules:
-    - changes: [ "platform/services/execution-service/**/*" ]
   script:
     - cd platform/services/execution-service
     - npm ci
 
 test:execution:
   stage: test
-  rules:
-    - changes: [ "platform/services/execution-service/**/*" ]
   script:
     - cd platform/services/execution-service
     - npm ci
@@ -110,16 +96,12 @@ test:execution:
 
 install:frontend:
   stage: install
-  rules:
-    - changes: [ "frontend/**/*" ]
   script:
     - cd frontend
     - npm ci
 
 build:frontend:
   stage: test
-  rules:
-    - changes: [ "frontend/**/*" ]
   script:
     - cd frontend
     - npm ci
