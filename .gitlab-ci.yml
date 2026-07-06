@@ -1,3 +1,10 @@
+spec:
+  inputs:
+    rollback_tag:
+      description: "Tag d'image à redéployer pour un rollback (laisser vide pour un pipeline normal)"
+      default: ""
+      type: string
+---
 # =========================================================
 #  Pipeline CI/CD — Plateforme intelligente de gestion de serveurs
 #  4 stages : install/test (CI) → build → publish → deploy (CD)
@@ -17,6 +24,7 @@ default:
   image: node:20
 
 variables:
+  ROLLBACK_TAG: $[[ inputs.rollback_tag ]]
   GATEWAY_PATH: platform/services/api-gateway
   AUTH_PATH: platform/services/auth-service
   INVENTORY_PATH: platform/services/inventory-service
@@ -302,3 +310,83 @@ rollback:production:
     - if: '$ROLLBACK_TAG'
       when: on_success
     - when: never
+
+# =========================================================
+#  STAGE .post — Diagnostic IA automatique sur échec de pipeline
+#  (contribution principale du PFE : couche d'orchestration
+#  intelligente, cf. rapport section 3.8)
+#
+#  Variable requise (Settings > CI/CD > Variables,
+#  cochée "Protected" + "Masked") :
+#    ANTHROPIC_API_KEY : ta clé API Claude/Anthropic
+#
+#  Se déclenche automatiquement dès qu'un job précédent échoue
+#  (test, build, publish ou deploy) — jamais lors d'un rollback.
+# =========================================================
+ai-diagnostic:
+  stage: .post
+  image: alpine:3.20
+  rules:
+    - if: '$ROLLBACK_TAG'
+      when: never
+    - when: on_failure
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - |
+      echo "Recherche du job en échec dans ce pipeline..."
+
+      FAILED_JOB=$(curl --silent --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+        "$CI_API_V4_URL/projects/$CI_PROJECT_ID/pipelines/$CI_PIPELINE_ID/jobs?scope[]=failed" \
+        | jq '[.[] | select(.name != "ai-diagnostic")][0]')
+
+      FAILED_JOB_ID=$(echo "$FAILED_JOB" | jq -r '.id')
+      FAILED_JOB_NAME=$(echo "$FAILED_JOB" | jq -r '.name')
+
+      if [ "$FAILED_JOB_ID" = "null" ] || [ -z "$FAILED_JOB_ID" ]; then
+        echo "Aucun job en échec identifiable — arrêt."
+        exit 0
+      fi
+
+      echo "Job en échec détecté : $FAILED_JOB_NAME (ID $FAILED_JOB_ID)"
+
+      # Récupère les logs du job en échec (les 6000 derniers caractères suffisent
+      # généralement à couvrir l'erreur réelle, en fin de log)
+      LOGS=$(curl --silent --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+        "$CI_API_V4_URL/projects/$CI_PROJECT_ID/jobs/$FAILED_JOB_ID/trace" \
+        | tail -c 6000)
+
+      # Construit le prompt (rôle + données + format de réponse attendu)
+      PAYLOAD=$(jq -n \
+        --arg job "$FAILED_JOB_NAME" \
+        --arg logs "$LOGS" \
+        '{
+          model: "claude-sonnet-5",
+          max_tokens: 600,
+          messages: [{
+            role: "user",
+            content: ("Tu es un assistant DevOps spécialisé dans le diagnostic de pipelines CI/CD GitLab.\n\nLe job \"" + $job + "\" vient d'\''échouer. Voici les derniers logs :\n\n---\n" + $logs + "\n---\n\nRéponds STRICTEMENT dans ce format :\n1. Cause probable : (1-2 phrases)\n2. Correction suggérée : (étapes concrètes et actionnables)\n3. Niveau de gravité : (faible / moyen / critique)")
+          }]
+        }')
+
+      echo "Envoi des logs à l'API Claude pour diagnostic..."
+
+      RESPONSE=$(curl --silent https://api.anthropic.com/v1/messages \
+        --header "x-api-key: $ANTHROPIC_API_KEY" \
+        --header "anthropic-version: 2023-06-01" \
+        --header "content-type: application/json" \
+        --data "$PAYLOAD")
+
+      DIAGNOSIS=$(echo "$RESPONSE" | jq -r '.content[0].text // "Erreur : réponse API invalide — vérifie ANTHROPIC_API_KEY.\n\nRéponse brute : \(.)"')
+
+      echo ""
+      echo "=================== DIAGNOSTIC IA ==================="
+      echo "$DIAGNOSIS"
+      echo "======================================================="
+
+      echo "$DIAGNOSIS" > diagnostic.md
+  artifacts:
+    when: always
+    paths:
+      - diagnostic.md
+    expire_in: 7 days

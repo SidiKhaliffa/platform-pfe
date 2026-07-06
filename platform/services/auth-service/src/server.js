@@ -5,3 +5,5 @@ const app = require('./app');
 app.listen(port, () => {
   console.log(`[auth-service] Running on http://localhost:${port}`);
 });
+
+con
