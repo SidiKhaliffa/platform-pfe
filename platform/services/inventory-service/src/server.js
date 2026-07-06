@@ -17,3 +17,5 @@ start().catch((err) => {
   console.error('[inventory-service] Fatal startup error:', err);
   process.exit(1);
 });
+
+//sss

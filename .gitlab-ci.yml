@@ -3,7 +3,7 @@
 #  4 stages : install/test (CI) → build → publish → deploy (CD)
 #
 #  install / test / build / publish  → runners partagés GitLab.com
-#  deploy / rollback                 → runner self-hosted (ta machine, WSL)
+#  deploy / rollback                 → runner skhaliff (ta machine, WSL)
 # =========================================================
 
 stages:
@@ -42,6 +42,10 @@ variables:
 .install_template:
   stage: install
   <<: *node_cache
+  rules:
+    - if: '$ROLLBACK_TAG'
+      when: never
+    - when: on_success
   script:
     - cd $SERVICE_PATH
     - npm ci
@@ -49,6 +53,10 @@ variables:
 .test_template:
   stage: test
   <<: *node_cache
+  rules:
+    - if: '$ROLLBACK_TAG'
+      when: never
+    - when: on_success
   script:
     - cd $SERVICE_PATH
     - npm ci
@@ -73,6 +81,8 @@ variables:
       - $SERVICE_NAME.tar
     expire_in: 1 hour
   rules:
+    - if: '$ROLLBACK_TAG'
+      when: never
     - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"'
 
 # ---------------------------------------------------------
@@ -96,6 +106,8 @@ variables:
         docker push $CI_REGISTRY_IMAGE/$SERVICE_NAME:latest
       fi
   rules:
+    - if: '$ROLLBACK_TAG'
+      when: never
     - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"'
 
 # =========================================================
@@ -211,6 +223,10 @@ test:frontend:
   stage: test
   variables: { SERVICE_PATH: $FRONTEND_PATH }
   needs: ["install:frontend"]
+  rules:
+    - if: '$ROLLBACK_TAG'
+      when: never
+    - when: on_success
   script:
     - cd $SERVICE_PATH
     - npm ci
@@ -227,7 +243,7 @@ publish:frontend:
   needs: ["build:frontend"]
 
 # =========================================================
-#  STAGE deploy — exécution LOCALE sur ton runner self-hosted
+#  STAGE deploy — exécution LOCALE sur ton runner skhaliff
 #  (WSL Ubuntu + Docker Desktop). Pas de SSH : le runner tourne
 #  déjà sur la machine cible, donc "déployer" = pull + up ici.
 #
@@ -244,7 +260,7 @@ deploy:production:
   tags:
     - skhaliff
   variables:
-    APP_DIR: "/mnt/c/Users/ELECTRO FATAL/Desktop/pfe_app/platform"   # <-- à adapter à ton chemin réel
+    APP_DIR: "/mnt/c/Users/ELECTRO FATAL/Desktop/pfe_app/platform"
   needs:
     - publish:gateway
     - publish:auth
@@ -261,6 +277,8 @@ deploy:production:
   environment:
     name: production
   rules:
+    - if: '$ROLLBACK_TAG'
+      when: never
     - if: '$CI_COMMIT_BRANCH == "main"'
 
 # ---------------------------------------------------------
@@ -272,8 +290,7 @@ rollback:production:
   tags:
     - skhaliff
   variables:
-    APP_DIR: "/mnt/c/Users/ELECTRO FATAL/Desktop/pfe_app/platform"   # <-- même chemin que ci-dessus
-  when: manual
+    APP_DIR: "/mnt/c/Users/ELECTRO FATAL/Desktop/pfe_app/platform"
   script:
     - cd "$APP_DIR"
     - sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$ROLLBACK_TAG/" .env
@@ -282,4 +299,6 @@ rollback:production:
   environment:
     name: production
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$ROLLBACK_TAG'
+      when: on_success
+    - when: never
