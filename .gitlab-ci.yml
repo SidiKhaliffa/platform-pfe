@@ -318,7 +318,7 @@ rollback:production:
 #
 #  Variable requise (Settings > CI/CD > Variables,
 #  cochée "Protected" + "Masked") :
-#    ANTHROPIC_API_KEY : ta clé API Claude/Anthropic
+#    OPENAI_API_KEY : ta clé API OpenAI
 #
 #  Se déclenche automatiquement dès qu'un job précédent échoue
 #  (test, build, publish ou deploy) — jamais lors d'un rollback.
@@ -361,7 +361,7 @@ ai-diagnostic:
         --arg job "$FAILED_JOB_NAME" \
         --arg logs "$LOGS" \
         '{
-          model: "claude-sonnet-5",
+          model: "gpt-4o-mini",
           max_tokens: 600,
           messages: [{
             role: "user",
@@ -369,15 +369,14 @@ ai-diagnostic:
           }]
         }')
 
-      echo "Envoi des logs à l'API Claude pour diagnostic..."
+      echo "Envoi des logs à l'API OpenAI pour diagnostic..."
 
-      RESPONSE=$(curl --silent https://api.anthropic.com/v1/messages \
-        --header "x-api-key: $GPT_API_KEY" \
-        --header "gpt-version: 2023-06-01" \
+      RESPONSE=$(curl --silent https://api.openai.com/v1/chat/completions \
+        --header "Authorization: Bearer $OPENAI_API_KEY" \
         --header "content-type: application/json" \
         --data "$PAYLOAD")
 
-      DIAGNOSIS=$(echo "$RESPONSE" | jq -r '.content[0].text // "Erreur : réponse API invalide — vérifie ANTHROPIC_API_KEY.\n\nRéponse brute : \(.)"')
+      DIAGNOSIS=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "Erreur : réponse API invalide — vérifie OPENAI_API_KEY.\n\nRéponse brute : \(.)"')
 
       echo ""
       echo "=================== DIAGNOSTIC IA ==================="
