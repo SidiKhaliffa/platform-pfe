@@ -44,4 +44,19 @@ const me = async (userId) => {
   return strip(user);
 };
 
-module.exports = { register, login, me };
+const listUsers = () => repo.findAll();
+
+// Réservé à l'ADMIN (cf. authorize middleware sur la route) — role imposé par l'appelant
+const createUser = async ({ email, password, role }) => {
+  const existing = await repo.findByEmail(email);
+  if (existing) {
+    const err = new Error('Email already in use');
+    err.status = 409;
+    throw err;
+  }
+  const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+  const user = await repo.create({ email, password: hashed, role });
+  return strip(user);
+};
+
+module.exports = { register, login, me, listUsers, createUser };

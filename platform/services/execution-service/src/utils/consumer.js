@@ -4,6 +4,14 @@ const logger   = require('./logger');
 
 const EXCHANGE = 'platform.events';
 const QUEUE    = 'execution.install-requests';
+const MAX_RETRY_DELAY_MS = 30000;
+let retryDelay = 1000;
+
+const scheduleReconnect = (url) => {
+  logger.warn(`[consumer] Reconnecting in ${retryDelay}ms…`);
+  setTimeout(() => connect(url), retryDelay);
+  retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY_MS);
+};
 
 const connect = async (url) => {
   try {
@@ -33,10 +41,15 @@ const connect = async (url) => {
     });
 
     logger.info(`[consumer] Listening on queue "${QUEUE}"`);
+    retryDelay = 1000;
     conn.on('error', (err) => logger.error('[consumer] Connection error', { error: err.message }));
-    conn.on('close', ()    => logger.warn('[consumer] Connection closed'));
+    conn.on('close', ()    => {
+      logger.warn('[consumer] Connection closed — reconnecting…');
+      scheduleReconnect(url);
+    });
   } catch (err) {
     logger.error('[consumer] Failed to connect to RabbitMQ', { error: err.message });
+    scheduleReconnect(url);
   }
 };
 

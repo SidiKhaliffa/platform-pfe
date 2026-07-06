@@ -1,124 +1,285 @@
-# Pipeline CI de la plateforme — build + test de tous les services + frontend
-# Étape d'apprentissage : on garde simple, on enrichit ensuite.
+# =========================================================
+#  Pipeline CI/CD — Plateforme intelligente de gestion de serveurs
+#  4 stages : install/test (CI) → build → publish → deploy (CD)
+#
+#  install / test / build / publish  → runners partagés GitLab.com
+#  deploy / rollback                 → runner self-hosted (ta machine, WSL)
+# =========================================================
 
 stages:
   - install
   - test
+  - build
+  - publish
+  - deploy
 
 default:
   image: node:20
 
-# =========================================================
-#  BACKEND — services sous platform/services/
-# =========================================================
+variables:
+  GATEWAY_PATH: platform/services/api-gateway
+  AUTH_PATH: platform/services/auth-service
+  INVENTORY_PATH: platform/services/inventory-service
+  MONITORING_PATH: platform/services/monitoring-service
+  EXECUTION_PATH: platform/services/execution-service
+  FRONTEND_PATH: frontend
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_DRIVER: overlay2
 
-# ---- API GATEWAY ----
-install:gateway:
+# Cache npm par service
+.node_cache: &node_cache
+  cache:
+    key:
+      files:
+        - $SERVICE_PATH/package-lock.json
+    paths:
+      - $SERVICE_PATH/node_modules
+    policy: pull-push
+
+# ---------------------------------------------------------
+#  Templates install / test
+# ---------------------------------------------------------
+.install_template:
   stage: install
-  rules:
-    - changes: [ "platform/services/api-gateway/**/*" ]
+  <<: *node_cache
   script:
-    - cd platform/services/api-gateway
+    - cd $SERVICE_PATH
     - npm ci
 
-test:gateway:
+.test_template:
   stage: test
-  rules:
-    - changes: [ "platform/services/api-gateway/**/*" ]
+  <<: *node_cache
   script:
-    - cd platform/services/api-gateway
+    - cd $SERVICE_PATH
     - npm ci
     - npm test --if-present
+
+# ---------------------------------------------------------
+#  Template build — construit l'image Docker (runners GitLab.com,
+#  via Docker-in-Docker), exportée en artifact .tar
+# ---------------------------------------------------------
+.docker_build_template:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    IMAGE_TAG: "$CI_REGISTRY_IMAGE/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA"
+  script:
+    - docker build -t $IMAGE_TAG $SERVICE_PATH
+    - docker save $IMAGE_TAG -o $SERVICE_NAME.tar
+  artifacts:
+    paths:
+      - $SERVICE_NAME.tar
+    expire_in: 1 hour
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"'
+
+# ---------------------------------------------------------
+#  Template publish — pousse l'image vers le registre GitLab
+# ---------------------------------------------------------
+.docker_publish_template:
+  stage: publish
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    IMAGE_TAG: "$CI_REGISTRY_IMAGE/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA"
+  before_script:
+    - docker load -i $SERVICE_NAME.tar
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - docker push $IMAGE_TAG
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        docker tag $IMAGE_TAG $CI_REGISTRY_IMAGE/$SERVICE_NAME:latest
+        docker push $CI_REGISTRY_IMAGE/$SERVICE_NAME:latest
+      fi
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"'
+
+# =========================================================
+#  BACKEND — API Gateway
+# =========================================================
+install:gateway:
+  extends: .install_template
+  variables: { SERVICE_PATH: $GATEWAY_PATH }
+
+test:gateway:
+  extends: .test_template
+  variables: { SERVICE_PATH: $GATEWAY_PATH }
+  needs: ["install:gateway"]
+
+build:gateway:
+  extends: .docker_build_template
+  variables: { SERVICE_PATH: $GATEWAY_PATH, SERVICE_NAME: api-gateway }
+  needs: ["test:gateway"]
+
+publish:gateway:
+  extends: .docker_publish_template
+  variables: { SERVICE_NAME: api-gateway }
+  needs: ["build:gateway"]
 
 # ---- AUTH SERVICE ----
 install:auth:
-  stage: install
-  rules:
-    - changes: [ "platform/services/auth-service/**/*" ]
-  script:
-    - cd platform/services/auth-service
-    - npm ci
+  extends: .install_template
+  variables: { SERVICE_PATH: $AUTH_PATH }
 
 test:auth:
-  stage: test
-  rules:
-    - changes: [ "platform/services/auth-service/**/*" ]
-  script:
-    - cd platform/services/auth-service
-    - npm ci
-    - npm test --if-present
+  extends: .test_template
+  variables: { SERVICE_PATH: $AUTH_PATH }
+  needs: ["install:auth"]
+
+build:auth:
+  extends: .docker_build_template
+  variables: { SERVICE_PATH: $AUTH_PATH, SERVICE_NAME: auth-service }
+  needs: ["test:auth"]
+
+publish:auth:
+  extends: .docker_publish_template
+  variables: { SERVICE_NAME: auth-service }
+  needs: ["build:auth"]
 
 # ---- INVENTORY SERVICE ----
 install:inventory:
-  stage: install
-  rules:
-    - changes: [ "platform/services/inventory-service/**/*" ]
-  script:
-    - cd platform/services/inventory-service
-    - npm ci
+  extends: .install_template
+  variables: { SERVICE_PATH: $INVENTORY_PATH }
 
 test:inventory:
-  stage: test
-  rules:
-    - changes: [ "platform/services/inventory-service/**/*" ]
-  script:
-    - cd platform/services/inventory-service
-    - npm ci
-    - npm test --if-present
+  extends: .test_template
+  variables: { SERVICE_PATH: $INVENTORY_PATH }
+  needs: ["install:inventory"]
+
+build:inventory:
+  extends: .docker_build_template
+  variables: { SERVICE_PATH: $INVENTORY_PATH, SERVICE_NAME: inventory-service }
+  needs: ["test:inventory"]
+
+publish:inventory:
+  extends: .docker_publish_template
+  variables: { SERVICE_NAME: inventory-service }
+  needs: ["build:inventory"]
 
 # ---- MONITORING SERVICE ----
 install:monitoring:
-  stage: install
-  rules:
-    - changes: [ "platform/services/monitoring-service/**/*" ]
-  script:
-    - cd platform/services/monitoring-service
-    - npm ci
+  extends: .install_template
+  variables: { SERVICE_PATH: $MONITORING_PATH }
 
 test:monitoring:
-  stage: test
-  rules:
-    - changes: [ "platform/services/monitoring-service/**/*" ]
-  script:
-    - cd platform/services/monitoring-service
-    - npm ci
-    - npm test --if-present
+  extends: .test_template
+  variables: { SERVICE_PATH: $MONITORING_PATH }
+  needs: ["install:monitoring"]
+
+build:monitoring:
+  extends: .docker_build_template
+  variables: { SERVICE_PATH: $MONITORING_PATH, SERVICE_NAME: monitoring-service }
+  needs: ["test:monitoring"]
+
+publish:monitoring:
+  extends: .docker_publish_template
+  variables: { SERVICE_NAME: monitoring-service }
+  needs: ["build:monitoring"]
 
 # ---- EXECUTION SERVICE ----
 install:execution:
-  stage: install
-  rules:
-    - changes: [ "platform/services/execution-service/**/*" ]
-  script:
-    - cd platform/services/execution-service
-    - npm ci
+  extends: .install_template
+  variables: { SERVICE_PATH: $EXECUTION_PATH }
 
 test:execution:
-  stage: test
-  rules:
-    - changes: [ "platform/services/execution-service/**/*" ]
-  script:
-    - cd platform/services/execution-service
-    - npm ci
-    - npm test --if-present
+  extends: .test_template
+  variables: { SERVICE_PATH: $EXECUTION_PATH }
+  needs: ["install:execution"]
+
+build:execution:
+  extends: .docker_build_template
+  variables: { SERVICE_PATH: $EXECUTION_PATH, SERVICE_NAME: execution-service }
+  needs: ["test:execution"]
+
+publish:execution:
+  extends: .docker_publish_template
+  variables: { SERVICE_NAME: execution-service }
+  needs: ["build:execution"]
 
 # =========================================================
-#  FRONTEND — React (Vite) sous frontend/
+#  FRONTEND — React (Vite)
 # =========================================================
-
 install:frontend:
-  stage: install
-  rules:
-    - changes: [ "frontend/**/*" ]
-  script:
-    - cd frontend
-    - npm ci
+  extends: .install_template
+  variables: { SERVICE_PATH: $FRONTEND_PATH }
 
-build:frontend:
+test:frontend:
   stage: test
-  rules:
-    - changes: [ "frontend/**/*" ]
+  variables: { SERVICE_PATH: $FRONTEND_PATH }
+  needs: ["install:frontend"]
   script:
-    - cd frontend
+    - cd $SERVICE_PATH
     - npm ci
     - npm run build
+
+build:frontend:
+  extends: .docker_build_template
+  variables: { SERVICE_PATH: $FRONTEND_PATH, SERVICE_NAME: frontend }
+  needs: ["test:frontend"]
+
+publish:frontend:
+  extends: .docker_publish_template
+  variables: { SERVICE_NAME: frontend }
+  needs: ["build:frontend"]
+
+# =========================================================
+#  STAGE deploy — exécution LOCALE sur ton runner self-hosted
+#  (WSL Ubuntu + Docker Desktop). Pas de SSH : le runner tourne
+#  déjà sur la machine cible, donc "déployer" = pull + up ici.
+#
+#  Pré-requis à faire UNE FOIS dans ton terminal Ubuntu (WSL) :
+#    docker login registry.gitlab.com   (avec un Deploy Token,
+#    Settings > Repository > Deploy tokens, scope read_registry)
+#
+#  Adapte APP_DIR ci-dessous au chemin réel de ton
+#  docker-compose.yml dans le système de fichiers WSL,
+#  ex: /home/<user>/app  ou  /mnt/c/Users/ELECTRO FATAL/Desktop/pfe_app/platform
+# =========================================================
+deploy:production:
+  stage: deploy
+  tags:
+    - skhaliff
+  variables:
+    APP_DIR: "/mnt/c/Users/ELECTRO FATAL/Desktop/pfe_app/platform"   # <-- à adapter à ton chemin réel
+  needs:
+    - publish:gateway
+    - publish:auth
+    - publish:inventory
+    - publish:monitoring
+    - publish:execution
+    - publish:frontend
+  script:
+    - cd "$APP_DIR"
+    - sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$CI_COMMIT_SHORT_SHA/" .env
+    - docker compose pull
+    - docker compose up -d --remove-orphans
+    - docker image prune -f
+  environment:
+    name: production
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+# ---------------------------------------------------------
+#  Rollback manuel — redéploie un tag antérieur, localement.
+#  Se lance à la main : CI/CD > Run pipeline > variable ROLLBACK_TAG
+# ---------------------------------------------------------
+rollback:production:
+  stage: deploy
+  tags:
+    - skhaliff
+  variables:
+    APP_DIR: "/mnt/c/Users/ELECTRO FATAL/Desktop/pfe_app/platform"   # <-- même chemin que ci-dessus
+  when: manual
+  script:
+    - cd "$APP_DIR"
+    - sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$ROLLBACK_TAG/" .env
+    - docker compose pull
+    - docker compose up -d --remove-orphans
+  environment:
+    name: production
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'

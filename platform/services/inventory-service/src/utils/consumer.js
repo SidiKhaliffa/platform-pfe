@@ -3,6 +3,14 @@ const repo = require('../modules/inventory/inventory.repository');
 
 const EXCHANGE = 'platform.events';
 const QUEUE    = 'inventory.status-sync';
+const MAX_RETRY_DELAY_MS = 30000;
+let retryDelay = 1000;
+
+const scheduleReconnect = (url) => {
+  console.warn(`[consumer] Reconnecting in ${retryDelay}ms…`);
+  setTimeout(() => connect(url), retryDelay);
+  retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY_MS);
+};
 
 const connect = async (url) => {
   try {
@@ -36,11 +44,16 @@ const connect = async (url) => {
     });
 
     console.log(`[consumer] Listening on queue "${QUEUE}" (server.up / server.down)`);
+    retryDelay = 1000;
     conn.on('error', (err) => console.error('[consumer] Connection error:', err.message));
-    conn.on('close', () => console.warn('[consumer] Connection closed'));
+    conn.on('close', () => {
+      console.warn('[consumer] Connection closed — reconnecting…');
+      scheduleReconnect(url);
+    });
   } catch (err) {
     // Le service reste opérationnel sans RabbitMQ — statuts non mis à jour
     console.error('[consumer] Failed to connect to RabbitMQ:', err.message);
+    scheduleReconnect(url);
   }
 };
 

@@ -4,6 +4,14 @@ const repo = require('../modules/monitoring/monitoring.repository');
 const EXCHANGE = 'platform.events';
 // Queue durable : les messages sont conservés même si le service est redémarré
 const QUEUE = 'monitoring.server-sync';
+const MAX_RETRY_DELAY_MS = 30000;
+let retryDelay = 1000;
+
+const scheduleReconnect = (url) => {
+  console.warn(`[consumer] Reconnecting in ${retryDelay}ms…`);
+  setTimeout(() => connect(url), retryDelay);
+  retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY_MS);
+};
 
 const connect = async (url) => {
   try {
@@ -42,10 +50,15 @@ const connect = async (url) => {
     });
 
     console.log(`[consumer] Listening on queue "${QUEUE}"`);
+    retryDelay = 1000;
     conn.on('error', (err) => console.error('[consumer] Connection error:', err.message));
-    conn.on('close', () => console.warn('[consumer] Connection closed'));
+    conn.on('close', () => {
+      console.warn('[consumer] Connection closed — reconnecting…');
+      scheduleReconnect(url);
+    });
   } catch (err) {
     console.error('[consumer] Failed to connect:', err.message);
+    scheduleReconnect(url);
   }
 };
 

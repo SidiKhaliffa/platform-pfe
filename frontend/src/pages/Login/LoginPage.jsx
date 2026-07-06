@@ -32,7 +32,7 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1 className="login-card__title">PFE Platform</h1>
+        <h1 className="login-card__title">Nexus platform</h1>
         <p className="login-card__subtitle">Gestion de serveurs à distance</p>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
@@ -45,7 +45,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@pfe.local"
+              placeholder="Email"
               required
               autoFocus
               autoComplete="email"

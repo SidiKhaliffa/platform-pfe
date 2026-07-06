@@ -22,4 +22,16 @@ const me = asyncHandler(async (req, res) => {
   res.json(user);
 });
 
-module.exports = { register, login, me };
+// GET /api/auth/users — ADMIN uniquement
+const listUsers = asyncHandler(async (req, res) => {
+  const users = await service.listUsers();
+  res.json(users);
+});
+
+// POST /api/auth/users — ADMIN uniquement, crée un OPERATOR ou VIEWER
+const createUser = asyncHandler(async (req, res) => {
+  const user = await service.createUser(req.body);
+  res.status(201).json(user);
+});
+
+module.exports = { register, login, me, listUsers, createUser };

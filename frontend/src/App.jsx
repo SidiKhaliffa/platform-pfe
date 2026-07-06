@@ -6,6 +6,7 @@ import LoginPage from './pages/Login/LoginPage';
 import ServersPage from './pages/Servers/ServersPage';
 import MonitoringPage from './pages/Monitoring/MonitoringPage';
 import InstallationsPage from './pages/Installations/InstallationsPage';
+import UsersPage from './pages/Users/UsersPage';
 
 function ComingSoon({ label }) {
   return (
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="servers"       element={<ServersPage />} />
             <Route path="monitoring"    element={<MonitoringPage />} />
             <Route path="installations" element={<InstallationsPage />} />
+            <Route path="users"         element={<UsersPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

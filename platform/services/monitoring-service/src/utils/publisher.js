@@ -1,7 +1,15 @@
 const amqplib = require('amqplib');
 
 const EXCHANGE = 'platform.events';
+const MAX_RETRY_DELAY_MS = 30000;
 let channel = null;
+let retryDelay = 1000;
+
+const scheduleReconnect = (url) => {
+  console.warn(`[publisher] Reconnecting in ${retryDelay}ms…`);
+  setTimeout(() => connect(url), retryDelay);
+  retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY_MS);
+};
 
 const connect = async (url) => {
   try {
@@ -9,10 +17,16 @@ const connect = async (url) => {
     channel = await conn.createChannel();
     await channel.assertExchange(EXCHANGE, 'topic', { durable: true });
     console.log('[publisher] Connected to RabbitMQ');
+    retryDelay = 1000;
     conn.on('error', (err) => { console.error('[publisher] Error:', err.message); channel = null; });
-    conn.on('close', () => { console.warn('[publisher] Connection closed'); channel = null; });
+    conn.on('close', () => {
+      console.warn('[publisher] Connection closed');
+      channel = null;
+      scheduleReconnect(url);
+    });
   } catch (err) {
     console.error('[publisher] Failed to connect:', err.message);
+    scheduleReconnect(url);
   }
 };
 

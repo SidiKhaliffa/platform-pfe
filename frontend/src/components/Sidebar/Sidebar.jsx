@@ -6,6 +6,7 @@ const NAV = [
   { to: '/servers',       label: 'Serveurs' },
   { to: '/monitoring',    label: 'Monitoring' },
   { to: '/installations', label: 'Installations' },
+  { to: '/users',         label: 'Utilisateurs', adminOnly: true },
 ];
 
 export default function Sidebar() {
@@ -13,10 +14,10 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar__brand">PFE Platform</div>
+      <div className="sidebar__brand">Nexus platform</div>
 
       <nav className="sidebar__nav">
-        {NAV.map(({ to, label }) => (
+        {NAV.filter((item) => !item.adminOnly || user?.role === 'ADMIN').map(({ to, label }) => (
           <NavLink
             key={to}
             to={to}

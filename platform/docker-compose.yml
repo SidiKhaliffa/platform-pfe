@@ -31,7 +31,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─── Bases de données (décommenter au fur et à mesure) ────────────────────
+  # ─── Bases de données ──────────────────────────────────────────────────────
 
   postgres-auth:
     image: postgres:16-alpine
@@ -43,7 +43,7 @@ services:
     volumes:
       - postgres-auth-data:/var/lib/postgresql/data
     ports:
-      - "5435:5432"    # exposé sur l'hôte pour les migrations locales
+      - "5435:5432"
     networks:
       - platform-net
     healthcheck:
@@ -62,7 +62,7 @@ services:
     volumes:
       - postgres-inventory-data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"    # exposé sur l'hôte pour les migrations locales (npx prisma migrate dev)
+      - "5433:5432"
     networks:
       - platform-net
     healthcheck:
@@ -81,7 +81,26 @@ services:
     volumes:
       - postgres-monitoring-data:/var/lib/postgresql/data
     ports:
-      - "5434:5432"    # exposé sur l'hôte pour les migrations locales
+      - "5434:5432"
+    networks:
+      - platform-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres-execution:
+    image: postgres:16-alpine
+    container_name: postgres-execution
+    environment:
+      POSTGRES_DB: execution_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres-execution-data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
     networks:
       - platform-net
     healthcheck:
@@ -91,8 +110,12 @@ services:
       retries: 5
 
   # ─── API Gateway ──────────────────────────────────────────────────────────
+  # "build" = utilisé si tu lances `docker compose build` en local (dev)
+  # "image"  = utilisé par `docker compose pull` (CI/CD) → image publiée
+  #            par le pipeline sur le registre GitLab
   api-gateway:
     build: ./services/api-gateway
+    image: registry.gitlab.com/sidi.khalifa7/platform-pfe/api-gateway:${IMAGE_TAG:-latest}
     container_name: api-gateway
     ports:
       - "${GATEWAY_PORT:-3000}:3000"
@@ -111,10 +134,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # ─── Services métier (décommenter au fur et à mesure) ────────────────────
+  # ─── Services métier ───────────────────────────────────────────────────────
 
   auth-service:
     build: ./services/auth-service
+    image: registry.gitlab.com/sidi.khalifa7/platform-pfe/auth-service:${IMAGE_TAG:-latest}
     container_name: auth-service
     expose: ["3001"]
     environment:
@@ -134,6 +158,7 @@ services:
 
   inventory-service:
     build: ./services/inventory-service
+    image: registry.gitlab.com/sidi.khalifa7/platform-pfe/inventory-service:${IMAGE_TAG:-latest}
     container_name: inventory-service
     expose: ["3002"]
     ports:
@@ -154,6 +179,7 @@ services:
 
   monitoring-service:
     build: ./services/monitoring-service
+    image: registry.gitlab.com/sidi.khalifa7/platform-pfe/monitoring-service:${IMAGE_TAG:-latest}
     container_name: monitoring-service
     expose: ["3003"]
     environment:
@@ -172,27 +198,9 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  postgres-execution:
-    image: postgres:16-alpine
-    container_name: postgres-execution
-    environment:
-      POSTGRES_DB: execution_db
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    volumes:
-      - postgres-execution-data:/var/lib/postgresql/data
-    ports:
-      - "5436:5432"    # migrations locales : DATABASE_URL=postgresql://postgres:postgres@localhost:5436/execution_db
-    networks:
-      - platform-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
   execution-service:
     build: ./services/execution-service
+    image: registry.gitlab.com/sidi.khalifa7/platform-pfe/execution-service:${IMAGE_TAG:-latest}
     container_name: execution-service
     expose: ["3004"]
     environment:
@@ -211,11 +219,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # ─── Serveur SSH de test (DEV UNIQUEMENT — ne pas déployer en prod) ───────
+  # ─── Serveur SSH de test (DEV UNIQUEMENT) ──────────────────────────────────
+  # Pas d'"image" registre : ce service n'a pas de job CI/CD dédié et ne doit
+  # jamais partir en prod. Le profil "dev" évite qu'il démarre par défaut.
   ssh-target:
     build: ./services/ssh-target
     container_name: ssh-target
+    profiles: ["dev"]
     ports:
       - "2222:22"    # accès depuis l'hôte : ssh root@localhost -p 2222
     networks:
       - platform-net
+
+  # ─── Frontend ─────────────────────────────────────────────────────────────
+  frontend:
+    build: ../frontend
+    image: registry.gitlab.com/sidi.khalifa7/platform-pfe/frontend:${IMAGE_TAG:-latest}
+    container_name: frontend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    networks:
+      - platform-net
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
